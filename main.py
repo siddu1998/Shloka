@@ -101,7 +101,7 @@ BLACK = (0, 0, 0)
 PINK = (235, 65, 54)
 
 #define font
-font = pygame.font.SysFont('Hind/Hind-Light.ttf', 30)
+font = pygame.font.SysFont('unifont.ttf', 30)
 
 def draw_text(text, font, text_col, x, y):
 	img = font.render(text, True, text_col)
@@ -819,10 +819,11 @@ while run:
 			if event.key == pygame.K_m:
 				player.chanting_label = "Recording...."
 				filename = shloka.record_audio(5)
-				#english_text = shloka.speechToEnglish(filename)[0]
-				hindi_text = shloka.speechToHindi(filename)[0]
-				#print(english_text)
-				player.chanting_label = hindi_text
+				english_text = shloka.speechToEnglish(filename)[0]
+				#hindi_text = shloka.speechToHindi(filename)[0]
+				print(english_text)
+				player.chanting_label = english_text
+				player.ammo+=10
 
 		#keyboard button released
 		if event.type == pygame.KEYUP:
