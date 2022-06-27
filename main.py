@@ -157,6 +157,9 @@ class Soldier(pygame.sprite.Sprite):
 		self.vel_y = 0
 		self.jump = False
 		self.in_air = True
+		self.fly 	= False
+		self.fly_countdown = 0
+
 		self.flip = False
 		self.animation_list = []
 		self.frame_index = 0
@@ -200,6 +203,14 @@ class Soldier(pygame.sprite.Sprite):
 		if self.shoot_cooldown > 0:
 			self.shoot_cooldown -= 1
 
+		if self.fly_countdown>0:
+			print(self.fly_countdown)
+			self.fly_countdown = self.fly_countdown-1
+		if self.fly_countdown==0:
+			self.fly = False
+		
+
+
 
 	def move(self, moving_left, moving_right):
 		#reset movement variables
@@ -217,19 +228,35 @@ class Soldier(pygame.sprite.Sprite):
 			self.flip = False
 			self.direction = 1
 
-		#jump
-		if self.jump == True and self.in_air == False:
-			self.vel_y = -11
-			self.jump = False
-			self.in_air = True
+
+		if self.fly == False:
+			#jump
+			if self.jump == True and self.in_air == False:
+				self.vel_y = -11
+				self.jump = False
+				self.in_air = True
+
+			#apply gravity
+			self.vel_y += GRAVITY
+			if self.vel_y > 10:
+				self.vel_y
+			dy += self.vel_y
+		
+		if self.fly == True:
+			#jump
+			if self.jump == True:
+				self.vel_y = -11
+				self.jump = False
+			#apply gravity
+			self.vel_y += GRAVITY
+			if self.vel_y > 10:
+				self.vel_y
+			dy += self.vel_y
 
 
-
-		#apply gravity always
-		self.vel_y += GRAVITY
-		if self.vel_y > 10:
-			self.vel_y
-		dy += self.vel_y
+		
+		
+		
 
 		#check for collision
 		for tile in world.obstacle_list:
@@ -825,6 +852,9 @@ while run:
 				print(english_text)
 				player.chanting_label = english_text
 				player.ammo+=10
+			if event.key == pygame.K_y:
+				player.fly = True
+				player.fly_countdown = 100
 
 		#keyboard button released
 		if event.type == pygame.KEYUP:
