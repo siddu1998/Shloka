@@ -158,7 +158,7 @@ class Soldier(pygame.sprite.Sprite):
 		self.jump = False
 		self.in_air = True
 		self.fly 	= False
-		self.fly_countdown = 0
+		self.fly_countdown = 0 #TODO: Need to change this to using PyClock!
 
 		self.flip = False
 		self.animation_list = []
@@ -203,8 +203,8 @@ class Soldier(pygame.sprite.Sprite):
 		if self.shoot_cooldown > 0:
 			self.shoot_cooldown -= 1
 
+
 		if self.fly_countdown>0:
-			print(self.fly_countdown)
 			self.fly_countdown = self.fly_countdown-1
 		if self.fly_countdown==0:
 			self.fly = False
