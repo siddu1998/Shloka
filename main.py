@@ -77,6 +77,9 @@ for x in range(TILE_TYPES):
 	img = pygame.image.load(f'img/Tile/{x}.png')
 	img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
 	img_list.append(img)
+
+#trident
+trident_img = pygame.image.load('img/icons/trident.png').convert_alpha()
 #bullet
 bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
 #grenade
@@ -147,10 +150,13 @@ class Soldier(pygame.sprite.Sprite):
 		self.alive = True
 		self.char_type = char_type
 		self.speed = speed
+
+		#Weapons
 		self.ammo = ammo
 		self.start_ammo = ammo
 		self.shoot_cooldown = 0
 		self.grenades = grenades
+		#Weapons
 		self.health = 100
 		self.max_health = self.health
 		self.direction = 1
@@ -527,6 +533,9 @@ class HealthBar():
 		pygame.draw.rect(screen, GREEN, (self.x, self.y, 150 * ratio, 20))
 
 
+
+
+#Weapons
 class Bullet(pygame.sprite.Sprite):
 	def __init__(self, x, y, direction):
 		pygame.sprite.Sprite.__init__(self)
@@ -557,6 +566,40 @@ class Bullet(pygame.sprite.Sprite):
 				if enemy.alive:
 					enemy.health -= 25
 					self.kill()
+
+
+class Trident(pygame.sprite.Sprite):
+	def __init__(self, x, y, direction):
+		pygame.sprite.Sprite.__init__(self)
+		self.speed = 10
+		self.image = trident_img
+		self.rect = self.image.get_rect()
+		self.rect.center = (x, y)
+		self.direction = direction
+
+	def update(self):
+		#move bullet
+		self.rect.x += (self.direction * self.speed) + screen_scroll
+		#check if bullet has gone off screen
+		if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
+			self.kill()
+		#check for collision with level
+		for tile in world.obstacle_list:
+			if tile[1].colliderect(self.rect):
+				self.kill()
+
+		#check collision with characters
+		if pygame.sprite.spritecollide(player, bullet_group, False):
+			if player.alive:
+				player.health -= 50
+				self.kill()
+		for enemy in enemy_group:
+			if pygame.sprite.spritecollide(enemy, bullet_group, False):
+				if enemy.alive:
+					enemy.health -= 50
+					self.kill()
+
+
 
 
 
@@ -679,6 +722,8 @@ class ScreenFade():
 #create screen fades
 intro_fade = ScreenFade(1, BLACK, 4)
 death_fade = ScreenFade(2, PINK, 4)
+
+key_press_fade = ScreenFade(2, WHITE, 4)
 
 
 #create buttons
@@ -856,6 +901,7 @@ while run:
 				player.fly = True
 				player.fly_countdown = 100
 
+
 		#keyboard button released
 		if event.type == pygame.KEYUP:
 			if event.key == pygame.K_a:
@@ -867,7 +913,7 @@ while run:
 			if event.key == pygame.K_q:
 				grenade = False
 				grenade_thrown = False
-			
+				
 
 
 
