@@ -4,6 +4,11 @@ import time, os
 import random
 import csv
 
+#Keep True to Use NLP features
+shloka_mode = True
+if shloka_mode:
+    import shloka
+
 mixer.init()
 pg.init()
 
@@ -40,7 +45,7 @@ shoot = False
 tnade = False
 thrown = False
 
-pg.mixer.music.load("Tutorial Assets/audio/music2.mp3")
+pg.mixer.music.load('../audio/background.mp3')
 pg.mixer.music.set_volume(0.3)
 pg.mixer.music.play(-1, 0.0, 5000)
 
@@ -839,6 +844,30 @@ while run:
 
             if event.key == pg.K_l and not light:
                 light = True
+
+
+            """
+            This module is for the NLP side of things, choosing to click 
+            the Key M would result in switching the mic on for 5 seconds. 
+            This would result starting the recording for 5 seconds, save the audio
+            file and eventually performing the speech to text. 
+            """
+            if event.key == pg.K_m:
+                #turn background music off
+                pg.mixer.music.set_volume(0.0)
+
+                filename = shloka.record_audio(5)
+                english_text = shloka.speechToEnglish(filename)[0]
+                print(english_text)
+                #uncomment if you want to it use Hindi Speech to Text
+                #hindi_text = shloka.speechToHindi(filename)[0]
+
+                #SHREYAS here is where you do your if-else game mechanics actions
+                if english_text.lower() == "sun":
+                    light = True
+
+
+                pg.mixer.music.set_volume(0.3)
 
             if event.key == pg.K_ESCAPE:
                 run = False
