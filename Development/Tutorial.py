@@ -51,7 +51,6 @@ pg.mixer.music.load('../audio/background.mp3')
 pg.mixer.music.set_volume(0.3)
 pg.mixer.music.play(-1, 0.0, 5000)
 
-
 brihaspati_intro = pg.mixer.Sound("../audio/Brihaspati_Intro.mp3")
 brihaspati_intro.set_volume(0.5)
 
@@ -76,6 +75,7 @@ startimg = pg.image.load("Tutorial Assets/img/start_btn.png").convert_alpha()
 endimg = pg.image.load("Tutorial Assets/img/exit_btn.png").convert_alpha()
 resimg = pg.image.load("Tutorial Assets/img/restart_btn.png").convert_alpha()
 brh = pg.image.load("Tutorial Assets/img/npcs/brihaspati.png").convert_alpha(); brh = pg.transform.scale(brh, (brh.get_width() * 0.2, brh.get_height() * 0.2)); brh.set_alpha(0)
+vishnu = pg.image.load("Tutorial Assets/img/npcs/vishnu.png").convert_alpha(); vishnu = pg.transform.scale(vishnu, (vishnu.get_width() * 0.667, vishnu.get_height() * 0.61)); vishnu.set_alpha(100)
 imglist = []
 
 for x in range(tiletypes):
@@ -91,6 +91,7 @@ red = (255, 0, 0, 255)
 green = (0, 255, 0, 255)
 black = (0, 0, 0, 255)
 pink = (235, 65, 54, 255)
+blue = (0, 0, 255, 255)
 
 font = pg.font.SysFont('Samarkan', 30)
 
@@ -355,6 +356,41 @@ class Character(pg.sprite.Sprite):
     def draw(self):
         window.blit(pg.transform.flip(self.img, self.flip, False), self.rect)
 
+class Ability():
+    def __init__(self):
+        self.active = False
+        self.apptime = 600
+        self.ticks = 0
+
+    def update(self, active, ticks, type):
+        self.ticks = ticks
+        self.active = active
+        self.type = type
+
+        if self.type == 1:
+            if self.active:
+                self.img = vishnu.copy()
+                player.health = 10000
+                self.time = 6000
+
+    def draw(self):
+        if self.active:
+            if pg.time.get_ticks() - self.ticks < self.time:
+                if pg.time.get_ticks() - self.ticks < self.apptime:
+                    a = self.img.get_alpha()
+
+                    if a - 3 > 0:
+                        self.img.set_alpha(a - 3)
+                        window.blit(self.img, (-30, 0))
+
+                pg.draw.circle(window, blue, (player.rect.centerx, player.rect.centery), 40, 2)
+
+            else:
+                if self.type == 1:
+                    player.health = player.mhealth
+
+                self.active = False
+
 class World():
     def __init__(self):
         self.oblist = []
@@ -484,7 +520,11 @@ class Healthbar():
 
         pg.draw.rect(window, black, (self.x - 2, self.y - 2, 154, 24))
         pg.draw.rect(window, red, (self.x, self.y, 150, 20))
-        pg.draw.rect(window, green, (self.x, self.y, 150 * ratio, 20))
+        if armour.active:
+            pg.draw.rect(window, green, (self.x, self.y, 150, 20))
+
+        else:
+            pg.draw.rect(window, green, (self.x, self.y, 150 * ratio, 20))
 
 class Projectile(pg.sprite.Sprite):
     def __init__(self, x, y, direc, char):
@@ -516,7 +556,7 @@ class Projectile(pg.sprite.Sprite):
 
         if pg.sprite.spritecollide(player, projgp, False):
             if player.alive:
-                player.health -=5
+                player.health -= 5
                 self.kill()
 
         for t in w.oblist:
@@ -653,6 +693,7 @@ boxgp = pg.sprite.Group()
 decgp = pg.sprite.Group()
 watergp = pg.sprite.Group()
 exgp = pg.sprite.Group()
+armour = Ability()
 
 startbtn = Button(SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 -150, startimg, 1)
 endbtn = Button(SCREEN_WIDTH // 2 - 110, SCREEN_HEIGHT // 2 + 50, endimg, 1)
@@ -731,11 +772,14 @@ while run:
         watergp.draw(window)
         exgp.draw(window)
 
+        if armour.active:
+            armour.draw()
+
         if not light and start_intro:
             if brihu_intro_flag == True:
                 brihaspati_intro.play()
                 brihu_intro_flag = False
-                
+
             night = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
 
             window.blit(night, (0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -751,13 +795,13 @@ while run:
                     else:
                         window.blit(brh, (SCREEN_WIDTH - brh.get_width() / 1.2, 0))
 
-                text("The Dark Forces have removed all the light. The Asuras are", font, white, 30, 60)
-                text("getting stronger with each day...", font, white, 30, 95)
-                text("it is time to conquer them!", font, white, 30, 135)
-            
-                
+                dia = text("The Dark Forces have removed all the light. The Asuras are", font, white, 30, 60)
+                dia = text("getting stronger with each day...", font, white, 30, 95)
+                dia = text("it is time to conquer them!", font, white, 30, 135)
 
         elif light and a > 0:
+            brihaspati_intro.stop()
+            brihu_intro_flag = False
             new = False
             a -= 10
 
@@ -857,6 +901,9 @@ while run:
             if event.key == pg.K_l and not light:
                 light = True
 
+            if event.key == pg.K_q:
+                if not armour.active:
+                    armour.update(True, pg.time.get_ticks(), 1)
 
             """
             This module is for the NLP side of things, choosing to click 
@@ -864,6 +911,7 @@ while run:
             This would result starting the recording for 5 seconds, save the audio
             file and eventually performing the speech to text. 
             """
+            
             if event.key == pg.K_m:
                 #turn background music off
                 pg.mixer.music.set_volume(0.0)
