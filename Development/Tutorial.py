@@ -45,9 +45,15 @@ shoot = False
 tnade = False
 thrown = False
 
+brihu_intro_flag = True
+
 pg.mixer.music.load('../audio/background.mp3')
 pg.mixer.music.set_volume(0.3)
 pg.mixer.music.play(-1, 0.0, 5000)
+
+
+brihaspati_intro = pg.mixer.Sound("../audio/Brihaspati_Intro.mp3")
+brihaspati_intro.set_volume(0.5)
 
 jfx = pg.mixer.Sound("Tutorial Assets/audio/jump.wav")
 jfx.set_volume(0.5)
@@ -726,6 +732,10 @@ while run:
         exgp.draw(window)
 
         if not light and start_intro:
+            if brihu_intro_flag == True:
+                brihaspati_intro.play()
+                brihu_intro_flag = False
+                
             night = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
 
             window.blit(night, (0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -741,9 +751,11 @@ while run:
                     else:
                         window.blit(brh, (SCREEN_WIDTH - brh.get_width() / 1.2, 0))
 
-                dia = text("The Dark Forces have removed all the light. The Asuras are", font, white, 30, 60)
-                dia = text("getting stronger with each day...", font, white, 30, 95)
-                dia = text("it is time to conquer them!", font, white, 30, 135)
+                text("The Dark Forces have removed all the light. The Asuras are", font, white, 30, 60)
+                text("getting stronger with each day...", font, white, 30, 95)
+                text("it is time to conquer them!", font, white, 30, 135)
+            
+                
 
         elif light and a > 0:
             new = False
