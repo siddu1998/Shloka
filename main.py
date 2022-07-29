@@ -894,7 +894,6 @@ while run:
 				filename = shloka.record_audio(5)
 				english_text = shloka.speechToEnglish(filename)[0]
 				#hindi_text = shloka.speechToHindi(filename)[0]
-				print(english_text)
 				player.chanting_label = english_text
 				player.ammo+=10
 			if event.key == pygame.K_y:
