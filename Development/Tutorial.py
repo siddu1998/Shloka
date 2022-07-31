@@ -5,7 +5,7 @@ import random
 import csv
 
 #Keep True to Use NLP features
-shloka_mode = True
+shloka_mode = False
 if shloka_mode:
     import shloka
 
@@ -369,6 +369,7 @@ class Ability():
 
         if self.type == 1:
             if self.active:
+                #transition 
                 self.img = vishnu.copy()
                 player.health = 10000
                 self.time = 6000
@@ -383,8 +384,8 @@ class Ability():
                         self.img.set_alpha(a - 3)
                         window.blit(self.img, (-30, 0))
 
-                pg.draw.circle(window, blue, (player.rect.centerx, player.rect.centery), 40, 2)
-
+                if self.type ==1:
+                    pg.draw.circle(window, blue, (player.rect.centerx, player.rect.centery), 40, 2)
             else:
                 if self.type == 1:
                     player.health = player.mhealth
@@ -795,6 +796,7 @@ while run:
                     else:
                         window.blit(brh, (SCREEN_WIDTH - brh.get_width() / 1.2, 0))
 
+                #clean-up
                 dia = text("The Dark Forces have removed all the light. The Asuras are", font, white, 30, 60)
                 dia = text("getting stronger with each day...", font, white, 30, 95)
                 dia = text("it is time to conquer them!", font, white, 30, 135)
@@ -903,7 +905,9 @@ while run:
 
             if event.key == pg.K_q:
                 if not armour.active:
+                    #change the last parameter for a new armour
                     armour.update(True, pg.time.get_ticks(), 1)
+                
 
             """
             This module is for the NLP side of things, choosing to click 
