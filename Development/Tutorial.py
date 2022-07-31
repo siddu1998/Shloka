@@ -930,6 +930,11 @@ while run:
                 if english_text.lower() == "sun":
                     light = True
 
+                if english_text.lower() == "vishnu":
+                    armour.update(True, pg.time.get_ticks(), 1)
+
+
+
 
                 pg.mixer.music.set_volume(0.3)
 
