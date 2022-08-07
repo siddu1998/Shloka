@@ -28,7 +28,7 @@ scrollthresh = 200
 rows = 16
 columns = 150
 tilesize = SCREEN_HEIGHT // rows
-tiletypes = 21
+tiletypes = 23                              #Increased to accomodate 'asura' and checkpoint tiles
 windowscroll = 0
 bgscroll = 0
 start_intro = False
@@ -47,7 +47,7 @@ thrown = False
 
 brihu_intro_flag = True
 
-pg.mixer.music.load('../audio/background.mp3')
+pg.mixer.music.load("../audio/background.mp3")
 pg.mixer.music.set_volume(0.3)
 pg.mixer.music.play(-1, 0.0, 5000)
 
@@ -400,6 +400,8 @@ class World():
         self.lvllength = len(data[0])
 
         for y, row in enumerate(data):
+            chkcounter = 0
+
             for x, tile in enumerate(row):
                 if tile >= 0:
                     img = imglist[tile]
@@ -443,6 +445,19 @@ class World():
                         ex = Exit(img, x * tilesize, y * tilesize)
                         exgp.add(ex)
 
+                    #Makes the asura spawn by reading from the level editor csv
+
+                    elif tile == 21:
+                        asura = Character("asura", x * tilesize, y * tilesize, 1.65, 2)
+                        engp.add(asura)
+
+                    #Adds the checkpoint by reading from the csv
+
+                    elif tile == 22:
+                        chkcounter += 1
+                        chk = Checkpoint(img, x * tilesize, y * tilesize, chkcounter, False)
+                        chkgp.add(chk)
+
         return player, hb
 
     def draw(self):
@@ -450,6 +465,32 @@ class World():
             t[1][0] += windowscroll
 
             window.blit(t[0], t[1])
+
+#Checkpoint class
+
+class Checkpoint(pg.sprite.Sprite):
+    def __init__(self, img, x, y, counter, active):
+        pg.sprite.Sprite.__init__(self)
+        self.image = img
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + (tilesize // 2), y + tilesize - (self.image.get_height()))
+        self.counter = counter
+        self.active = active
+
+    def update(self):
+        self.rect.x += windowscroll
+
+        if pg.sprite.collide_rect(self, player) and not self.active:
+            if self.counter == 1:
+                dia = text("Checkpoint 1", font, white, 30, 60)
+                self.active = True
+
+            elif self.counter == 2:
+                dia = text("Checkpoint 2", font, white, 30, 60)
+        
+        elif self.active and not pg.sprite.collide_rect(self, player):
+            self.kill()
+                
 
 class Decoration(pg.sprite.Sprite):
     def __init__(self, img, x, y):
@@ -521,7 +562,7 @@ class Healthbar():
 
         pg.draw.rect(window, black, (self.x - 2, self.y - 2, 154, 24))
         pg.draw.rect(window, red, (self.x, self.y, 150, 20))
-        if armour.active:
+        if ability.active:
             pg.draw.rect(window, green, (self.x, self.y, 150, 20))
 
         else:
@@ -546,6 +587,17 @@ class Projectile(pg.sprite.Sprite):
         elif self.char == 'enemy':
             self.image = proj
 
+        #Set asura projectiles to be tridents like the player
+
+        elif self.char == 'asura':
+            if self.dir == 1:
+                self.flip = False
+
+            if self.dir == -1:
+                self.flip = True
+
+            self.image = pg.transform.flip(proj1, self.flip, False)
+
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
 
@@ -565,10 +617,19 @@ class Projectile(pg.sprite.Sprite):
                 self.kill()
                 
         for e in engp:
-            if pg.sprite.spritecollide(e, projgp, False):
-                if e.alive:
-                    e.health -= 25
-                    self.kill()
+            if e.char == 'enemy':
+                if pg.sprite.spritecollide(e, projgp, False):
+                    if e.alive:
+                        e.health -= 25
+                        self.kill()
+
+            #Reduces damage dealt to 'asura' enemy type to make them a stronger enemy type
+
+            elif e.char == 'asura':
+                if pg.sprite.spritecollide(e, projgp, False):
+                    if e.alive:
+                        e.health -= 10
+                        self.kill()
 
     def draw(self):
         window.blit(self.image, self.rect)
@@ -694,7 +755,8 @@ boxgp = pg.sprite.Group()
 decgp = pg.sprite.Group()
 watergp = pg.sprite.Group()
 exgp = pg.sprite.Group()
-armour = Ability()
+chkgp = pg.sprite.Group()               #Made group for checkpoints
+ability = Ability()                     #Renamed 'armour' object to 'ability' since it is gonna be a lot more than just armour
 
 startbtn = Button(SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 -150, startimg, 1)
 endbtn = Button(SCREEN_WIDTH // 2 - 110, SCREEN_HEIGHT // 2 + 50, endimg, 1)
@@ -759,6 +821,7 @@ while run:
         decgp.update()
         watergp.update()
         exgp.update()
+        chkgp.update()                  #Updates checkpoint group - checks for collisions and subsequent actions
 
         player.draw()
 
@@ -772,9 +835,10 @@ while run:
         decgp.draw(window)
         watergp.draw(window)
         exgp.draw(window)
+        chkgp.draw(window)              #Draws checkpoint group elements
 
-        if armour.active:
-            armour.draw()
+        if ability.active:
+            ability.draw()
 
         if not light and start_intro:
             if brihu_intro_flag == True:
@@ -904,9 +968,9 @@ while run:
                 light = True
 
             if event.key == pg.K_q:
-                if not armour.active:
+                if not ability.active:
                     #change the last parameter for a new armour
-                    armour.update(True, pg.time.get_ticks(), 1)
+                    ability.update(True, pg.time.get_ticks(), 1)
                 
 
             """
@@ -931,7 +995,7 @@ while run:
                     light = True
 
                 if english_text.lower() == "vishnu":
-                    armour.update(True, pg.time.get_ticks(), 1)
+                    ability.update(True, pg.time.get_ticks(), 1)
 
 
 
