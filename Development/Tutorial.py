@@ -398,10 +398,9 @@ class World():
 
     def process_data(self, data):
         self.lvllength = len(data[0])
+        chkcounter = 0
 
         for y, row in enumerate(data):
-            chkcounter = 0
-
             for x, tile in enumerate(row):
                 if tile >= 0:
                     img = imglist[tile]
@@ -476,19 +475,21 @@ class Checkpoint(pg.sprite.Sprite):
         self.rect.midtop = (x + (tilesize // 2), y + tilesize - (self.image.get_height()))
         self.counter = counter
         self.active = active
+        self.collide = False
 
     def update(self):
         self.rect.x += windowscroll
 
         if pg.sprite.collide_rect(self, player) and not self.active:
             if self.counter == 1:
-                dia = text("Checkpoint 1", font, white, 30, 60)
-                self.active = True
+                text("Checkpoint 1", font, white, 30, 550)
+                self.collide = True
 
             elif self.counter == 2:
-                dia = text("Checkpoint 2", font, white, 30, 60)
+                text("Checkpoint 2", font, white, 30, 550)
+                self.collide = True
         
-        elif self.active and not pg.sprite.collide_rect(self, player):
+        elif self.collide:
             self.kill()
                 
 
