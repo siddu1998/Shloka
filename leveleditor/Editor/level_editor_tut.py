@@ -28,7 +28,10 @@ level = 0
 current_tile = 0
 scroll_left = False
 scroll_right = False
+#scroll_up = False
+#scroll_down = False
 scroll = 0
+#scrollv = 0
 scroll_speed = 1
 
 
@@ -128,7 +131,7 @@ while run:
 	draw_world()
 
 	draw_text(f'Level: {level}', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 90)
-	draw_text('Press UP or DOWN to change level', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 60)
+	draw_text('Press W or S to change level', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 60)
 
 	#save and load data
 	if save_button.draw(screen):
@@ -145,6 +148,7 @@ while run:
 		#load in level data
 		#reset scroll back to the start of the level
 		scroll = 0
+		#scrollv = 0
 		with open(f'../Levels/level{level}_data.csv', newline='') as csvfile:
 			reader = csv.reader(csvfile, delimiter = ',')
 			for x, row in enumerate(reader):
@@ -173,6 +177,10 @@ while run:
 		scroll -= 5 * scroll_speed
 	if scroll_right == True and scroll < (MAX_COLS * TILE_SIZE) - SCREEN_WIDTH:
 		scroll += 5 * scroll_speed
+	#if scroll_up == True and scrollv > 0:
+	#	scrollv -= 5 * scroll_speed
+	#if scroll_down == True and scrollv < ((ROWS + MAX_COLS) * TILE_SIZE) - SCREEN_HEIGHT:
+	#	scrollv += 5 * scroll_speed
 
 	#add new tiles to the screen
 	#get mouse position
@@ -195,14 +203,18 @@ while run:
 			run = False
 		#keyboard presses
 		if event.type == pygame.KEYDOWN:
-			if event.key == pygame.K_UP:
+			if event.key == pygame.K_w:
 				level += 1
-			if event.key == pygame.K_DOWN and level > 0:
+			if event.key == pygame.K_s and level > 0:
 				level -= 1
 			if event.key == pygame.K_LEFT:
 				scroll_left = True
 			if event.key == pygame.K_RIGHT:
 				scroll_right = True
+			#if event.key == pygame.K_UP:
+			#	scroll_up = True
+			#if event.key == pygame.K_DOWN:
+			#	scroll_down = True
 			if event.key == pygame.K_RSHIFT:
 				scroll_speed = 5
 
@@ -212,6 +224,10 @@ while run:
 				scroll_left = False
 			if event.key == pygame.K_RIGHT:
 				scroll_right = False
+			#if event.key == pygame.K_UP:
+			#	scroll_up = False
+			#if event.key == pygame.K_DOWN:
+			#	scroll_down = False
 			if event.key == pygame.K_RSHIFT:
 				scroll_speed = 1
 
