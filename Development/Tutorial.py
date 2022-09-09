@@ -1,11 +1,12 @@
 import pygame as pg
 from pygame import mixer
-import time, os
+import os
 import random
 import csv
+import math
 
 #Keep True to Use NLP features
-shloka_mode = False
+shloka_mode = True
 if shloka_mode:
     import shloka
 
@@ -28,8 +29,9 @@ scrollthresh = 200
 rows = 16
 columns = 150
 tilesize = SCREEN_HEIGHT // rows
-tiletypes = 21
+tiletypes = 23                              #Increased to accomodate 'asura' and checkpoint tiles
 windowscroll = 0
+#vertscroll = 0
 bgscroll = 0
 start_intro = False
 light = False
@@ -41,13 +43,15 @@ sg = False
 
 moving_l = False
 moving_r = False
+#moving_t = False
+#moving_d = False
 shoot = False
 tnade = False
 thrown = False
 
 brihu_intro_flag = True
 
-pg.mixer.music.load('../audio/background.mp3')
+pg.mixer.music.load("../audio/background.mp3")
 pg.mixer.music.set_volume(0.3)
 pg.mixer.music.play(-1, 0.0, 5000)
 
@@ -65,7 +69,8 @@ pine1 = pg.image.load("Tutorial Assets/img/Background/pine1.png").convert_alpha(
 pine2 = pg.image.load("Tutorial Assets/img/Background/pine2.png").convert_alpha()
 mount = pg.image.load("Tutorial Assets/img/Background/mountain.png").convert_alpha()
 sky = pg.image.load("Tutorial Assets/img/Background/sky_cloud.png").convert_alpha()
-proj1 = pg.image.load("Tutorial Assets/img/icons/bulletr.png").convert_alpha()
+trident = pg.image.load("Tutorial Assets/img/icons/trident.png").convert_alpha()                        #Renamed for easier understanding
+mnote = pg.image.load("Tutorial Assets/img/icons/note.png").convert_alpha()                             #Musical note projectile
 proj = pg.image.load("Tutorial Assets/img/icons/bullet.png").convert_alpha()
 grenade = pg.image.load("Tutorial Assets/img/icons/grenade.png").convert_alpha()
 hbox= pg.image.load("Tutorial Assets/img/icons/health_box.png").convert_alpha()
@@ -75,7 +80,8 @@ startimg = pg.image.load("Tutorial Assets/img/start_btn.png").convert_alpha()
 endimg = pg.image.load("Tutorial Assets/img/exit_btn.png").convert_alpha()
 resimg = pg.image.load("Tutorial Assets/img/restart_btn.png").convert_alpha()
 brh = pg.image.load("Tutorial Assets/img/npcs/brihaspati.png").convert_alpha(); brh = pg.transform.scale(brh, (brh.get_width() * 0.2, brh.get_height() * 0.2)); brh.set_alpha(0)
-vishnu = pg.image.load("Tutorial Assets/img/npcs/vishnu.png").convert_alpha(); vishnu = pg.transform.scale(vishnu, (vishnu.get_width() * 0.667, vishnu.get_height() * 0.61)); vishnu.set_alpha(100)
+#Renamed to prevent clashing with the class
+vishnuimg = pg.image.load("Tutorial Assets/img/npcs/vishnu.png").convert_alpha(); vishnuimg = pg.transform.scale(vishnuimg, (vishnuimg.get_width() * 0.667, vishnuimg.get_height() * 0.61)); vishnuimg.set_alpha(100)
 imglist = []
 
 for x in range(tiletypes):
@@ -95,10 +101,51 @@ blue = (0, 0, 255, 255)
 
 font = pg.font.SysFont('Samarkan', 30)
 
+#Function to calculate distance
+
+def distance(rect1, rect2):
+    x1, y1 = rect1.topleft
+    x1b, y1b = rect1.bottomright
+    x2, y2 = rect2.topleft
+    x2b, y2b = rect2.bottomright
+
+    left = x2b < x1
+    right = x1b < x2
+    top = y2b < y1
+    bottom = y1b < y2
+
+    if bottom and left:
+        return math.hypot(x2b-x1, y2-y1b)
+
+    elif left and top:
+        return math.hypot(x2b-x1, y2b-y1)
+
+    elif top and right:
+        return math.hypot(x2-x1b, y2b-y1)
+
+    elif right and bottom:
+        return math.hypot(x2-x1b, y2-y1b)
+
+    elif left:
+        return x1 - x2b
+
+    elif right:
+        return x2 - x1b
+
+    elif top:
+        return y1 - y2b
+
+    elif bottom:
+        return y2 - y1b
+
+    else:
+        return 0
+
 def bg():
     window.fill(bgc)
 
     w = sky.get_width()
+    #h = sky.get_height()
 
     for i in range(5):
         window.blit(sky, ((i * w) - (bgscroll * 0.5),0))
@@ -159,9 +206,12 @@ class Character(pg.sprite.Sprite):
     def __init__(self, char, x, y, scale, velx, ammo = 20, gcount = 0):
         pg.sprite.Sprite.__init__(self)
         self.alive = True
+        self.vert = False                           #Currently unused (for vertical stuff)
+        self.airact = False                         #Currently unused (for vertical stuff)
         self.char = char
         self.velx = velx
         self.ammo = ammo
+        self.vammo = -1                             #Veena ability ammo
         self.start_ammo = ammo
         self.shootcd = 0
         self.gcount = gcount
@@ -210,6 +260,7 @@ class Character(pg.sprite.Sprite):
 
     def move(self, moving_left, moving_right):
         windowscroll = 0
+        vertscroll = 0                              #Currently unused (for vertical stuff)
         dx = 0
         dy = 0
 
@@ -223,12 +274,42 @@ class Character(pg.sprite.Sprite):
             self.dir = 1
             dx = self.velx
 
-        if self.jump == True and self.air == False:
-            self.vely = -11
-            self.jump = False
-            self.air = True
+        #if self.vert and self.airact:
+        #    if moving_top:
+        #        dy = self.vely
 
-        self.vely += grav
+        #    if moving_down:
+        #        dy = -self.vely
+        #else:
+        if self.jump == True:
+            try:
+                if fly.active:                          #Checks for flying ability
+                    self.vely = -11
+                    self.jump = False
+
+                else:
+                    raise Exception("Ability Ended")
+
+            except:
+                if self.air == False:
+                    self.vely = -11
+                    self.jump = False
+                    self.air = True
+
+        try:
+            if fly.active:
+                if self.vely >= 0:                      #Checks so that gravity is regular till the max height is reached to prevent flying away
+                    self.vely += grav * 0.25            #Changes gravity intensity for the floating effect while falling down
+
+                else:
+                    self.vely += grav
+
+            else:
+                raise Exception("Ability Ended")
+
+        except:
+            self.vely += grav
+
         if self.vely > 10:
             self.vely = 10
         dy += self.vely
@@ -251,8 +332,16 @@ class Character(pg.sprite.Sprite):
                     dy = t[1].top - self.rect.bottom
                     self.air = False
 
-        if pg.sprite.spritecollide(self, watergp, False):
-            self.health = 0
+        try:
+            if wdis.active:                         #Checks ifn the water disappearing ability is active
+                pass
+
+            else:
+                raise Exception("Ability Inactive")
+
+        except:
+            if pg.sprite.spritecollide(self, watergp, False):
+                self.health = 0
 
         lvlcomp = False
         if pg.sprite.spritecollide(self, exgp, False):
@@ -265,19 +354,56 @@ class Character(pg.sprite.Sprite):
             if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
                 dx = 0
 
-        self.rect.x += dx
+        try:
+            if mace.active:
+                self.rect.x += dx + mace.sreturn()                                  #Adds the mace scroll value to the player coordinates to prevent glitches like instantly scaling walls (pretty gamebreaking)
+
+            else:
+                self.rect.x += dx
+        
+        except:
+            self.rect.x += dx
+
         self.rect.y += dy
 
         if self.char == 'player':
-            if (self.rect.right > SCREEN_WIDTH - scrollthresh and bgscroll < (w.lvllength * tilesize) - SCREEN_WIDTH) or\
-                (self.rect.left < scrollthresh and bgscroll > abs(dx)):
-                self.rect.x -= dx
-                windowscroll = -dx
+            rightcon = self.rect.right > SCREEN_WIDTH - scrollthresh and bgscroll < (w.lvllength * tilesize) - SCREEN_WIDTH and moving_right
+            leftcon = self.rect.left < scrollthresh and bgscroll > abs(dx) and moving_left
+            topcon = self.rect.top < scrollthresh                                               #Currently unused (for vertical stuff)
+            bottomcon = self.rect.bottom > SCREEN_HEIGHT - scrollthresh                         #Currently unused (for vertical stuff)
+
+            if rightcon or leftcon:
+                try:
+                    if speed.active:                                                    #Checks if superspeed is active
+                        if rightcon:
+                            self.rect.right = SCREEN_WIDTH - scrollthresh               #Changed the code to stop the player position at the rect instead
+                                                                                        #of subtracting the coordinates as the original author did (complex approach
+                                                                                        #and broke superspeed, dunno why the author chose to do so)
+
+                        elif leftcon:
+                            self.rect.left = scrollthresh
+
+                        windowscroll = -dx
+
+                    else:
+                        raise Exception("Ability Inactive")
+
+                except:
+                    self.rect.x -= dx
+                    windowscroll = -dx
 
         return windowscroll, lvlcomp
 
     def shoot(self):
-        if self.shootcd == 0 and self.ammo > 0:
+        if self.shootcd == 0 and self.vammo > 0:                                        #Check to replace regular ammo with veena ammo on pressing space
+            self.shootcd = 20
+            self.vammo -= 1
+
+            bullet = Projectile(self.rect.centerx + (self.dir * self.rect.size[0] * 0.75), self.rect.centery, self.dir, self.char)
+            projgp.add(bullet)
+            shotfx.play()
+
+        elif self.shootcd == 0 and self.ammo > 0:
             self.shootcd = 20
             self.ammo -=1
 
@@ -286,41 +412,49 @@ class Character(pg.sprite.Sprite):
             shotfx.play()
 
     def ai(self):
-        if self.alive and player.alive:
-            if random.randint(1, 200) == 1 and self.idle == False:
+        try:
+            if veena.active and self.alive:                                            #Makes the enemies stop and sleep when veena ability is activated
                 self.update_action(0)
-                self.idle = True
-                self.ic = 50
-
-            if self.vision.colliderect(player.rect):
-                self.update_action(0)
-                self.shoot()
 
             else:
-                if not self.idle:
-                    if self.dir == 1:
-                        aimovingr = True
+                raise Exception("Move")
 
-                    else:
-                        aimovingr = False
+        except:
+            if self.alive and player.alive:
+                if random.randint(1, 200) == 1 and self.idle == False:
+                    self.update_action(0)
+                    self.idle = True
+                    self.ic = 50
 
-                    aimovingl = not aimovingr
-
-                    self.move(aimovingl, aimovingr)
-                    self.update_action(1)
-                    self.mc += 1
-
-                    self.vision.center = (self.rect.centerx + 75 * self.dir, self.rect.centery)
-
-                    if self.mc >= tilesize:
-                        self.dir *= -1
-                        self.mc *= -1
+                if self.vision.colliderect(player.rect):
+                    self.update_action(0)
+                    self.shoot()
 
                 else:
-                    self.ic -= 1
+                    if not self.idle:
+                        if self.dir == 1:
+                            aimovingr = True
 
-                    if self.ic <= 0:
-                        self.idle = False
+                        else:
+                            aimovingr = False
+
+                        aimovingl = not aimovingr
+
+                        self.move(aimovingl, aimovingr)
+                        self.update_action(1)
+                        self.mc += 1
+
+                        self.vision.center = (self.rect.centerx + 75 * self.dir, self.rect.centery)
+
+                        if self.mc >= tilesize:
+                            self.dir *= -1
+                            self.mc *= -1
+
+                    else:
+                        self.ic -= 1
+
+                        if self.ic <= 0:
+                            self.idle = False
 
         self.rect.x += windowscroll
 
@@ -356,48 +490,142 @@ class Character(pg.sprite.Sprite):
     def draw(self):
         window.blit(pg.transform.flip(self.img, self.flip, False), self.rect)
 
-class Ability():
-    def __init__(self):
-        self.active = False
-        self.apptime = 600
-        self.ticks = 0
+#Changed how the Ability class was structured to handle multiple ability objects at a time in a list instead of all of them as part of the same object
 
-    def update(self, active, ticks, type):
-        self.ticks = ticks
+class Ability():
+    def __init__(self, type, ticks, active):
         self.active = active
+        self.time = 6000
+        self.apptime = 600
+        self.ticks = ticks
         self.type = type
 
-        if self.type == 1:
-            if self.active:
-                #transition 
-                self.img = vishnu.copy()
-                player.health = 10000
-                self.time = 6000
+        if player.alive:
+            if not self.type:
+                self.actlist = []                                       #Initialises the ability list which is also stored in an Ability ibject for ease of use
+
+            elif self.type not in activation.actlist:                   #Check for making only those abilities responsive that have been activated through the checkpoints
+                self.active = False
+
+            else:
+                if self.active:
+                    if self.type == 1:
+                        #transition 
+                        self.img = vishnuimg.copy()
+
+                        #changes to character
+                        self.ihealth = player.health
+                        player.health = 100000000000
+
+                    #Mace ability
+
+                    if self.type == 2:
+                        #transition (placeholder is vishnu image for now)
+                        self.img = vishnuimg.copy()
+                        self.slimit = 30                                #Number of ticks before the scroll reverses to give a tremor effect
+                        self.sticks = self.ticks                        #Changes later on to keep incrasing along with the in-game ticks and keep the counter running for scroll reverse
+                        self.sflip = 1                                  #Value to set the direction of the scroll and is changed whenever self.sticks reaches self.slimit
+                        self.scroll = 0                                 #The actual scroll value which is added to windowscroll in the main loop and to the player movement
+
+                        #changes on screen and in enemies
+                        for e in engp:
+                            if distance(e.rect, player.rect) <= 120:
+                                e.health -= 0.5 * e.mhealth
+
+                    #Veena ability
+
+                    if self.type == 3:                                          #Veena
+                        #transition (placeholder is vishnu image for now)
+                        self.img = vishnuimg.copy()
+                        player.vammo = 10
+
+                    if self.type == 4:                                          #Fly
+                        #transition (placeholder is vishnu image for now)
+                        self.img = vishnuimg.copy()
+
+                    if self.type == 5:                                          #Water disappear
+                        #transition (placeholder is vishnu image for now)
+                        self.img = vishnuimg.copy()
+
+                    if self.type == 6:                                          #Superspeed
+                        #transition (placeholder is vishnu image for now)
+                        self.img = vishnuimg.copy()
+                        self.ivel = player.velx
+                        player.velx *= 1.5
 
     def draw(self):
         if self.active:
-            if pg.time.get_ticks() - self.ticks < self.time:
-                if pg.time.get_ticks() - self.ticks < self.apptime:
-                    a = self.img.get_alpha()
-
-                    if a - 3 > 0:
-                        self.img.set_alpha(a - 3)
-                        window.blit(self.img, (-30, 0))
-
-                if self.type ==1:
-                    pg.draw.circle(window, blue, (player.rect.centerx, player.rect.centery), 40, 2)
-            else:
-                if self.type == 1:
-                    player.health = player.mhealth
-
+            if not player.alive:                #Check to activate abilities only if the player is alive, also prevents them from carrying over even after death
                 self.active = False
+
+            if self.type in activation.actlist:                                 #Check to draw only those abilities which have been unlocked through their respective checkpoints
+                if pg.time.get_ticks() - self.ticks < self.time:
+                    if pg.time.get_ticks() - self.ticks < self.apptime:
+                        a = self.img.get_alpha()
+
+                        if a - 3 > 0:
+                            self.img.set_alpha(a - 3)
+                            window.blit(self.img, (-30, 0))
+
+                    if self.type == 1:
+                        pg.draw.circle(window, blue, (player.rect.centerx, player.rect.centery), 40, 2)
+
+                    if self.type == 2:
+                        if pg.time.get_ticks() - self.sticks < self.slimit:
+                            self.scroll = 2 * self.sflip                        #Change the int value to set the intensity of scroll/tremor effect
+                        
+                        else:
+                            if self.sflip == 1:
+                                self.sflip = -1
+                                self.sticks = pg.time.get_ticks()
+
+                            else:
+                                self.sflip = 1
+                                self.sticks = pg.time.get_ticks()
+
+                        pg.draw.circle(window, red, (player.rect.centerx, player.rect.centery), 120, 2)     #Set the radius of the ability circle to 120 to indicate the enemies which will be affected
+
+                    if self.type == 3:
+                        pg.draw.circle(window, white, (player.rect.centerx, player.rect.centery), 40, 2)
+
+                        for e in engp:
+                            if e.rect.left < SCREEN_WIDTH and e.rect.right > 0:
+                                if e.rect.top < SCREEN_HEIGHT and e.rect.bottom > 0:
+                                    text("ZZZ", font, blue, e.rect.centerx, (e.rect.top - 20))
+
+                    if self.type == 4:
+                        pg.draw.circle(window, black, (player.rect.centerx, player.rect.centery), 40, 2)
+
+                    if self.type == 5:
+                        pg.draw.circle(window, pink, (player.rect.centerx, player.rect.centery), 40, 2)
+
+                    if self.type == 6:
+                        pg.draw.circle(window, green, (player.rect.centerx, player.rect.centery), 40, 2)
+
+                else:
+                    if self.type == 1:
+                        player.health = self.ihealth
+
+                    if self.type == 2:
+                        self.scroll = 0
+
+                    if self.type == 6:
+                        player.velx = self.ivel
+
+                    self.active = False
+
+    def sreturn(self):                          #Returns the scroll value
+        return self.scroll
 
 class World():
     def __init__(self):
         self.oblist = []
 
     def process_data(self, data):
+        self.lvlheight = len(data)              #Currently unused (for vertical stuff)
         self.lvllength = len(data[0])
+        chkcounter = 0                          #Counter for checkpoints
+        chkdict = {}                            #Dictionary to store checkpoints related information
 
         for y, row in enumerate(data):
             for x, tile in enumerate(row):
@@ -443,6 +671,28 @@ class World():
                         ex = Exit(img, x * tilesize, y * tilesize)
                         exgp.add(ex)
 
+                    #Makes the asura spawn by reading from the level editor csv
+
+                    elif tile == 21:
+                        asura = Character("asura", x * tilesize, y * tilesize, 1.65, 2)
+                        engp.add(asura)
+
+                    #Adds the checkpoint by reading from the csv
+
+                    elif tile == 22:
+                        chkcounter += 1
+                        chkdict[chkcounter] = [img, x, y]
+
+        counter = 0
+
+        for k in reversed(chkdict):
+            counter += 1
+            chk = Checkpoint(chkdict[k][0], chkdict[k][1] * tilesize, chkdict[k][2] * tilesize, counter, True)
+            chkgp.add(chk)
+
+            #Separate loop and dictionary were required because the level csv has the information in reverse order for some reason, so the checkpoints were counted from end
+            #to beginning
+
         return player, hb
 
     def draw(self):
@@ -450,6 +700,45 @@ class World():
             t[1][0] += windowscroll
 
             window.blit(t[0], t[1])
+
+#Checkpoint class
+
+class Checkpoint(pg.sprite.Sprite):
+    def __init__(self, img, x, y, counter, active):
+        pg.sprite.Sprite.__init__(self)
+        self.image = img
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + (tilesize // 2), y + tilesize - (self.image.get_height()))
+        self.counter = counter
+        self.collide = False
+        self.active = active
+
+    def update(self):
+        self.rect.x += windowscroll
+        #self.rect.y += vertscroll
+
+    def draw(self):
+        window.blit(self.image, self.rect)
+
+        if pg.sprite.collide_rect(self, player) and self.active:
+            if self.counter == 1:
+                text("vishnu", font, white, 30, 550)
+                self.collide = True
+
+                #activation.actlist.append(1)                                                 #The number input here decides the ability available to use
+                activation.actlist.extend([1, 2, 3, 4, 5, 6])                                 #For now, all abilities are activated upon reaching the first checkpoint for demo
+
+            elif self.counter == 2:
+                text("mace", font, white, 30, 550)
+                self.collide = True
+
+                #activation.actlist.append(2)
+
+        elif self.collide:
+            self.active = False
+
+        elif not player.alive:
+            self.active = False
 
 class Decoration(pg.sprite.Sprite):
     def __init__(self, img, x, y):
@@ -517,14 +806,22 @@ class Healthbar():
     def draw(self, health):
         self.health = health
 
-        ratio = self.health / self.mhealth
+        ratio = player.health / player.mhealth
 
         pg.draw.rect(window, black, (self.x - 2, self.y - 2, 154, 24))
         pg.draw.rect(window, red, (self.x, self.y, 150, 20))
-        if armour.active:
-            pg.draw.rect(window, green, (self.x, self.y, 150, 20))
 
-        else:
+        #Check to make the healthbar stay as it is instead of overflowing outside the border when vishnukavach is activated (since the ability just increases the health a lot
+        #instead of stopping damage to the player as an easy way rn, will change when vertical stuff is sorted out)
+
+        try:
+            if vishnu.active:
+                pg.draw.rect(window, green, (self.x, self.y, 150 * (vishnu.ihealth / player.mhealth), 20))
+
+            else:
+                pg.draw.rect(window, green, (self.x, self.y, 150 * ratio, 20))
+
+        except:
             pg.draw.rect(window, green, (self.x, self.y, 150 * ratio, 20))
 
 class Projectile(pg.sprite.Sprite):
@@ -535,16 +832,48 @@ class Projectile(pg.sprite.Sprite):
         self.flip = False
         self.char = char
         if self.char == 'player':
+            if player.vammo > 0:                                                #Check for veena ammo and to blit regular ammo if veena ammo is empty
+                if self.dir == 1:
+                    self.flip = False
+
+                elif self.dir == -1:
+                    self.flip = True
+
+                self.image = pg.transform.flip(mnote, self.flip, False)
+
+            elif player.vammo == 0:
+                player.vammo = -1
+                
+                if self.dir == 1:
+                    self.flip = False
+
+                elif self.dir == -1:
+                    self.flip = True
+
+                self.image = pg.transform.flip(mnote, self.flip, False)
+
+            else:
+                if self.dir == 1:
+                    self.flip = False
+
+                elif self.dir == -1:
+                    self.flip = True
+
+                self.image = pg.transform.flip(trident, self.flip, False)
+
+        elif self.char == 'enemy':
+            self.image = proj
+
+        #Set asura projectiles to be tridents like the player
+
+        elif self.char == 'asura':
             if self.dir == 1:
                 self.flip = False
 
             if self.dir == -1:
                 self.flip = True
 
-            self.image = pg.transform.flip(proj1, self.flip, False)
-
-        elif self.char == 'enemy':
-            self.image = proj
+            self.image = pg.transform.flip(trident, self.flip, False)
 
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
@@ -565,10 +894,19 @@ class Projectile(pg.sprite.Sprite):
                 self.kill()
                 
         for e in engp:
-            if pg.sprite.spritecollide(e, projgp, False):
-                if e.alive:
-                    e.health -= 25
-                    self.kill()
+            if e.char == 'enemy':
+                if pg.sprite.spritecollide(e, projgp, False):
+                    if e.alive:
+                        e.health -= 25
+                        self.kill()
+
+            #Reduces damage dealt to 'asura' enemy type to make them a stronger enemy type
+
+            elif e.char == 'asura':
+                if pg.sprite.spritecollide(e, projgp, False):
+                    if e.alive:
+                        e.health -= 10
+                        self.kill()
 
     def draw(self):
         window.blit(self.image, self.rect)
@@ -694,7 +1032,9 @@ boxgp = pg.sprite.Group()
 decgp = pg.sprite.Group()
 watergp = pg.sprite.Group()
 exgp = pg.sprite.Group()
-armour = Ability()
+chkgp = pg.sprite.Group()               #Made group for checkpoints
+
+ablist = []                             #Made a list for Ability objects
 
 startbtn = Button(SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 -150, startimg, 1)
 endbtn = Button(SCREEN_WIDTH // 2 - 110, SCREEN_HEIGHT // 2 + 50, endimg, 1)
@@ -706,7 +1046,7 @@ for row in range(rows):
     r = [-1] * columns
     wdata.append(r)
 
-with open(f'Tutorial Assets/level{level}_data.csv', newline='') as csvfile:
+with open(f'../leveleditor/Levels/level{level}_data.csv', newline='') as csvfile:
     reader = csv.reader(csvfile, delimiter = ',')
 
     for x, row in enumerate(reader):
@@ -715,6 +1055,9 @@ with open(f'Tutorial Assets/level{level}_data.csv', newline='') as csvfile:
 
 w = World()
 player, hb = w.process_data(wdata)
+
+activation = Ability(0, pg.time.get_ticks(), True)                                      #Initialisation of the ability activaqtion checklist
+ablist.append(activation)
 
 while run:
     clock.tick(fps)
@@ -739,12 +1082,18 @@ while run:
         text('AMMO: ', font, white, 10, 35)
 
         for c in range(player.ammo):
-            window.blit(proj1, (90 + (c * 25), 40))
+            window.blit(trident, (90 + (c * 25), 40))
         
         text('GRENADES: ', font, white, 10, 70)
         
         for c in range(player.gcount):
             window.blit(grenade, (140 + (c * 15), 72.5))
+
+        if player.vammo > 0:                                                            #Displays the Veena ammo only if it is gretaer than 0
+            text("VEENA AMMO: ", font, white, 10, 105)
+
+            for c in range(player.vammo):
+                window.blit(mnote, (160 + (c * 25), 110))
 
         player.update()
 
@@ -759,6 +1108,8 @@ while run:
         decgp.update()
         watergp.update()
         exgp.update()
+        for c in chkgp:                 #Updates checkpoint group - checks for collisions and subsequent actions
+            c.update()
 
         player.draw()
 
@@ -770,11 +1121,24 @@ while run:
         expgp.draw(window)
         boxgp.draw(window)
         decgp.draw(window)
-        watergp.draw(window)
+
+        try:
+            if wdis.active:                             #Does not draw water if water disappear ability is active
+                pass
+
+            else:
+                raise Exception("Ability Inactive")
+
+        except:
+            watergp.draw(window)
+
         exgp.draw(window)
 
-        if armour.active:
-            armour.draw()
+        for c in chkgp:                 #Draws checkpoint group elements
+            c.draw()
+
+        for ab in ablist:               #Draws the ability effects for the respective abilities in the list
+            ab.draw()
 
         if not light and start_intro:
             if brihu_intro_flag == True:
@@ -796,10 +1160,10 @@ while run:
                     else:
                         window.blit(brh, (SCREEN_WIDTH - brh.get_width() / 1.2, 0))
 
-                #clean-up
-                dia = text("The Dark Forces have removed all the light. The Asuras are", font, white, 30, 60)
-                dia = text("getting stronger with each day...", font, white, 30, 95)
-                dia = text("it is time to conquer them!", font, white, 30, 135)
+                #cleaned up
+                text("The Dark Forces have removed all the light. The Asuras are", font, white, 30, 60)
+                text("getting stronger with each day...", font, white, 30, 95)
+                text("it is time to conquer them!", font, white, 30, 135)
 
         elif light and a > 0:
             brihaspati_intro.stop()
@@ -837,17 +1201,31 @@ while run:
             else:
                 player.update_action(0)
 
-            windowscroll, lvlcomp = player.move(moving_l, moving_r)
-            bgscroll -= windowscroll
+            playerscroll, lvlcomp = player.move(moving_l, moving_r)         #Changed the universal windowscroll vraiable to acoomodate scroll variations for 'earthquake' effect due to mace ability
+            
+            try:
+                if mace.active:
+                    windowscroll = playerscroll + mace.scroll               #Changes windowscroll value according to ability activation
+                
+                else:
+                    raise Exception("Ability Inactive")
+
+            except:
+                windowscroll = playerscroll
+
+            bgscroll -= playerscroll                                        #Changed the scroll variable to the new one
 
             if lvlcomp:
+                for ability in ablist:                             #Deactivates all abilities on level completion to prevent them from being carried over to the next level
+                    ability.active = False
+
                 start_intro = True
                 level += 1
                 bgscroll = 0
                 wdata = reset()
 
                 if level <= mlevels:
-                    with open(f'Tutorial Assets/level{level}_data.csv', newline='') as csvfile:
+                    with open(f'../leveleditor/Levels/level{level}_data.csv', newline='') as csvfile:
                         reader = csv.reader(csvfile, delimiter = ',')
 
                         for x, row in enumerate(reader):
@@ -855,12 +1233,16 @@ while run:
                                 wdata[x][y] = int(tile)
 
                     w = World()
-                    player, hb = w.process_data(wdata)
+                    player, hb = w.process_data(wdata)   
 
         else:
             windowscroll = 0
 
             if dfade.fade():
+                for chk in chkgp:
+                    chk.kill()                                                     #Kills the checkpoint objects after death screen since they were redrawn on the game window
+                                                                                   #after respawn similar to their last position, for some reason
+
                 if resbtn.draw(window):
                     dfade.fcounter = 0
                     start_intro = True
@@ -868,7 +1250,7 @@ while run:
                     bgscroll = 0
                     wdata = reset()
 
-                    with open(f'Tutorial Assets/level{level}_data.csv', newline='') as csvfile:
+                    with open(f'../leveleditor/Levels/level{level}_data.csv', newline='') as csvfile:
                         reader = csv.reader(csvfile, delimiter = ',')
 
                         for x, row in enumerate(reader):
@@ -903,11 +1285,104 @@ while run:
             if event.key == pg.K_l and not light:
                 light = True
 
-            if event.key == pg.K_q:
-                if not armour.active:
-                    #change the last parameter for a new armour
-                    armour.update(True, pg.time.get_ticks(), 1)
+            if event.key == pg.K_q:                                                 #Changed abilities into separate objects that are now added to the ability group
+                try:
+                    if not vishnu.active:
+                        ablist.remove(vishnu)                                       #Removes the object from the list before deletion as failure to do so results in partial deletion
+
+                        del vishnu
+
+                        vishnu = Ability(1, pg.time.get_ticks(), True)
+
+                        #Add it to the ability group
+                        ablist.append(vishnu)
                 
+                except:
+                    vishnu = Ability(1, pg.time.get_ticks(), True)
+                    
+                    ablist.append(vishnu)
+
+            #Mace activation check
+            
+            if event.key == pg.K_u:
+                try:
+                    if not mace.active:
+                        ablist.remove(mace)
+
+                        del mace
+
+                        mace = Ability(2, pg.time.get_ticks(), True)
+
+                        ablist.append(mace)
+
+                except:
+                    mace = Ability(2, pg.time.get_ticks(), True)
+
+                    ablist.append(mace)
+
+            if event.key == pg.K_v:
+                try:
+                    if not veena.active:
+                        ablist.remove(veena)
+
+                        del veena
+
+                        veena = Ability(3, pg.time.get_ticks(), True)
+
+                        ablist.append(veena)
+
+                except:
+                    veena = Ability(3, pg.time.get_ticks(), True)
+
+                    ablist.append(veena)
+
+            if event.key == pg.K_f:
+                try:
+                    if not fly.active:
+                        ablist.remove(fly)
+
+                        del fly
+
+                        fly = Ability(4, pg.time.get_ticks(), True)
+
+                        ablist.append(fly)
+
+                except:
+                    fly = Ability(4, pg.time.get_ticks(), True)
+
+                    ablist.append(fly)
+
+            if event.key == pg.K_z:
+                try:
+                    if not wdis.active:
+                        ablist.remove(wdis)
+
+                        del wdis
+
+                        wdis = Ability(5, pg.time.get_ticks(), True)
+                
+                        ablist.append(wdis)
+
+                except:
+                    wdis = Ability(5, pg.time.get_ticks(), True)
+
+                    ablist.append(wdis)
+
+            if event.key == pg.K_p:
+                try:
+                    if not speed.active:
+                        ablist.remove(speed)
+
+                        del speed
+
+                        speed = Ability(6, pg.time.get_ticks(), True)
+
+                        ablist.append(speed)
+
+                except:
+                    speed = Ability(6, pg.time.get_ticks(), True)
+
+                    ablist.append(speed)
 
             """
             This module is for the NLP side of things, choosing to click 
@@ -923,15 +1398,27 @@ while run:
                 filename = shloka.record_audio(5)
                 english_text = shloka.speechToEnglish(filename)[0]
                 print(english_text)
+                print(shloka.audio_classification(filename))
                 #uncomment if you want to it use Hindi Speech to Text
                 #hindi_text = shloka.speechToHindi(filename)[0]
 
-                #SHREYAS here is where you do your if-else game mechanics actions
                 if english_text.lower() == "sun":
                     light = True
 
-                if english_text.lower() == "vishnu":
-                    armour.update(True, pg.time.get_ticks(), 1)
+                try:
+                    ablist.remove(vishnu)
+
+                    del vishnu
+
+                    vishnu = Ability(1, pg.time.get_ticks(), True)
+
+                    ablist.append(vishnu)
+
+                except:
+                    if english_text.lower() == "vishnu":
+                        vishnu = Ability(1, pg.time.get_ticks(), True)
+
+                        ablist.append(vishnu)
 
 
 
