@@ -6,7 +6,7 @@ import csv
 import math
 
 #Keep True to Use NLP features
-shloka_mode = False
+shloka_mode = True
 if shloka_mode:
     import shloka
 
@@ -1398,10 +1398,10 @@ while run:
                 filename = shloka.record_audio(5)
                 english_text = shloka.speechToEnglish(filename)[0]
                 print(english_text)
+                print(shloka.audio_classification(filename))
                 #uncomment if you want to it use Hindi Speech to Text
                 #hindi_text = shloka.speechToHindi(filename)[0]
 
-                #SHREYAS here is where you do your if-else game mechanics actions
                 if english_text.lower() == "sun":
                     light = True
 
