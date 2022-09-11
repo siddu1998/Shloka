@@ -71,6 +71,6 @@ def speechToEnglish(audio_file):
 
 # Imports
 def audio_classification(audio_file):
-    audio_file = audio.TensorAudio.create_from_wav_file("/Users/sid/Desktop/Code/Shloka/Development/player_recordings/output.wav", classifier.required_input_buffer_size)
+    audio_file = audio.TensorAudio.create_from_wav_file(audio_file, classifier.required_input_buffer_size)
     audio_result = classifier.classify(audio_file)
     return audio_result

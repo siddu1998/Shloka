@@ -1,3 +1,5 @@
 0 Background Noise
-1 Om Namah Shivaya
-2 Om Surya Devaya namaha
+1 Hanuman
+2 Saraswati
+3 Surya
+4 Vayu

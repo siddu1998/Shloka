@@ -1398,7 +1398,12 @@ while run:
                 filename = shloka.record_audio(5)
                 english_text = shloka.speechToEnglish(filename)[0]
                 print(english_text)
-                print(shloka.audio_classification(filename))
+                x=shloka.audio_classification(filename)
+                print(type(x))
+                print(x.classifications)
+                print(x.classifications[0].categories[0].category_name)
+                
+
                 #uncomment if you want to it use Hindi Speech to Text
                 #hindi_text = shloka.speechToHindi(filename)[0]
 
