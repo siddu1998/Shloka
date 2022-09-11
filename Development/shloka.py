@@ -1,7 +1,7 @@
-import torch
-import torchaudio
-from datasets import load_dataset,Audio
-from transformers import Wav2Vec2ForCTC,Wav2Vec2Processor
+# import torch
+# import torchaudio
+# from datasets import load_dataset,Audio
+# from transformers import Wav2Vec2ForCTC,Wav2Vec2Processor
 import argparse
 import tempfile
 import queue
@@ -17,12 +17,12 @@ from tflite_support.task import core
 from tflite_support.task import processor
 
 
-processor_hindi = Wav2Vec2Processor.from_pretrained("theainerd/Wav2Vec2-large-xlsr-hindi")
-model = Wav2Vec2ForCTC.from_pretrained("theainerd/Wav2Vec2-large-xlsr-hindi")
-resampler = torchaudio.transforms.Resample(48_000, 16_000)
+# processor_hindi = Wav2Vec2Processor.from_pretrained("theainerd/Wav2Vec2-large-xlsr-hindi")
+# model = Wav2Vec2ForCTC.from_pretrained("theainerd/Wav2Vec2-large-xlsr-hindi")
+# resampler = torchaudio.transforms.Resample(48_000, 16_000)
 
-processor_english = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-large-960h")
-model_english = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-large-960h")
+# processor_english = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-large-960h")
+# model_english = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-large-960h")
 
 base_options = core.BaseOptions(file_name="/Users/sid/Desktop/Code/Shloka/Development/converted_tflite/soundclassifier_with_metadata.tflite")
 classification_options = processor.ClassificationOptions(max_results=2)
@@ -43,30 +43,30 @@ def record_audio(record_time=5):
 
 
 
-def speechToHindi(audio_file):
-    speech_array, sampling_rate = torchaudio.load(audio_file)
-    speech = resampler(speech_array).squeeze().numpy()
-    inputs = processor_hindi(speech, sampling_rate=16_000, return_tensors="pt", padding=True)
+# def speechToHindi(audio_file):
+#     speech_array, sampling_rate = torchaudio.load(audio_file)
+#     speech = resampler(speech_array).squeeze().numpy()
+#     inputs = processor_hindi(speech, sampling_rate=16_000, return_tensors="pt", padding=True)
 
-    with torch.no_grad():
-        logits = model(inputs.input_values, attention_mask=inputs.attention_mask).logits
+#     with torch.no_grad():
+#         logits = model(inputs.input_values, attention_mask=inputs.attention_mask).logits
 
-    predicted_ids = torch.argmax(logits, dim=-1)
+#     predicted_ids = torch.argmax(logits, dim=-1)
 
-    print("Prediction:", processor_hindi.batch_decode(predicted_ids))
-    return processor_hindi.batch_decode(predicted_ids)
+#     print("Prediction:", processor_hindi.batch_decode(predicted_ids))
+#     return processor_hindi.batch_decode(predicted_ids)
     
-def speechToEnglish(audio_file):
-    speech_array, sampling_rate = torchaudio.load(audio_file)
-    speech = resampler(speech_array).squeeze().numpy()
-    input_values = processor_english(speech, return_tensors="pt", padding="longest").input_values  # Batch size 1
+# def speechToEnglish(audio_file):
+#     speech_array, sampling_rate = torchaudio.load(audio_file)
+#     speech = resampler(speech_array).squeeze().numpy()
+#     input_values = processor_english(speech, return_tensors="pt", padding="longest").input_values  # Batch size 1
 
     # retrieve logits
-    logits = model_english(input_values).logits
+    # logits = model_english(input_values).logits
 
-    predicted_ids = torch.argmax(logits, dim=-1)
-    transcription = processor_english.batch_decode(predicted_ids)
-    return transcription
+    # predicted_ids = torch.argmax(logits, dim=-1)
+    # transcription = processor_english.batch_decode(predicted_ids)
+    # return transcription
 
 
 # Imports

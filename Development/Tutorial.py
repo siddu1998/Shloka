@@ -1304,6 +1304,7 @@ while run:
 
             #Mace activation check
             
+            #earth shake
             if event.key == pg.K_u:
                 try:
                     if not mace.active:
@@ -1320,6 +1321,7 @@ while run:
 
                     ablist.append(mace)
 
+            #veena saraswati
             if event.key == pg.K_v:
                 try:
                     if not veena.active:
@@ -1336,6 +1338,7 @@ while run:
 
                     ablist.append(veena)
 
+            #fly
             if event.key == pg.K_f:
                 try:
                     if not fly.active:
@@ -1352,6 +1355,7 @@ while run:
 
                     ablist.append(fly)
 
+            #water removal 
             if event.key == pg.K_z:
                 try:
                     if not wdis.active:
@@ -1368,6 +1372,7 @@ while run:
 
                     ablist.append(wdis)
 
+            #super speed
             if event.key == pg.K_p:
                 try:
                     if not speed.active:
@@ -1396,8 +1401,8 @@ while run:
                 pg.mixer.music.set_volume(0.0)
 
                 filename = shloka.record_audio(5)
-                english_text = shloka.speechToEnglish(filename)[0]
-                print(english_text)
+                # english_text = shloka.speechToEnglish(filename)[0]
+                # print(english_text)
                 x=shloka.audio_classification(filename)
                 print(type(x))
                 print(x.classifications)
@@ -1407,26 +1412,56 @@ while run:
                 #uncomment if you want to it use Hindi Speech to Text
                 #hindi_text = shloka.speechToHindi(filename)[0]
 
-                if english_text.lower() == "sun":
+                if x.classifications[0].categories[0].category_name == "3 Surya":
                     light = True
 
-                try:
-                    ablist.remove(vishnu)
+                if x.classifications[0].categories[0].category_name == "2 Saraswati":
+                #saraswati mic
+                    try:
+                        if not veena.active:
+                            ablist.remove(veena)
 
-                    del vishnu
+                            del veena
 
-                    vishnu = Ability(1, pg.time.get_ticks(), True)
+                            veena = Ability(3, pg.time.get_ticks(), True)
 
-                    ablist.append(vishnu)
+                            ablist.append(veena)
 
-                except:
-                    if english_text.lower() == "vishnu":
-                        vishnu = Ability(1, pg.time.get_ticks(), True)
+                    except:
+                        veena = Ability(3, pg.time.get_ticks(), True)
+                        ablist.append(veena)
 
-                        ablist.append(vishnu)
+                #vayu fly mic
+                if x.classifications[0].categories[0].category_name == "4 Vayu":
+                    try:
+                        if not fly.active:
+                            ablist.remove(fly)
 
+                            del fly
 
+                            fly = Ability(4, pg.time.get_ticks(), True)
 
+                            ablist.append(fly)
+
+                    except:
+                        fly = Ability(4, pg.time.get_ticks(), True)
+                        ablist.append(fly)                
+
+                #hanuman mace
+                if x.classifications[0].categories[0].category_name == "1 Hanuman":
+                    try:
+                        if not mace.active:
+                            ablist.remove(mace)
+
+                            del mace
+
+                            mace = Ability(2, pg.time.get_ticks(), True)
+
+                            ablist.append(mace)
+
+                    except:
+                        mace = Ability(2, pg.time.get_ticks(), True)
+                        ablist.append(mace)
 
                 pg.mixer.music.set_volume(0.3)
 
